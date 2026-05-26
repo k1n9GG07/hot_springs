@@ -2,14 +2,20 @@
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
-defineProps({
+const props = defineProps({
   booking: {
     type: Object,
     required: true
+    /**
+     * {
+     *   id, cabinName, date, timeStart, timeEnd, 
+     *   hours, totalPrice, status
+     * }
+     */
   }
 })
 
-defineEmits(['cancel'])
+defineEmits(['cancel', 'confirm'])
 
 const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('ru-RU', {
@@ -18,29 +24,45 @@ const formatDate = (dateStr) => {
     year: 'numeric'
   })
 }
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('ru-RU').format(price)
+}
 </script>
 
 <template>
-  <div class="booking-card" :class="booking.status">
-    <div class="status-indicator"></div>
-    
-    <div class="booking-main">
-      <div class="booking-info">
-        <h4 class="cabin-name">{{ booking.cabinName }}</h4>
-        <div class="booking-details">
-          <span class="detail-item">📅 {{ formatDate(booking.date) }}</span>
-          <span class="detail-item">⏰ {{ booking.timeStart }} – {{ booking.timeEnd }} ({{ booking.hours }} ч.)</span>
-        </div>
-      </div>
-
-      <div class="booking-meta">
-        <div class="booking-price">{{ booking.totalPrice.toLocaleString() }} ₽</div>
+  <div class="booking-card" :class="`booking-card--${booking.status}`">
+    <div class="booking-card__info">
+      <div class="booking-card__header">
+        <h3 class="booking-card__cabin">{{ booking.cabinName }}</h3>
         <AppBadge :status="booking.status" />
       </div>
-
-      <div v-if="booking.status === 'pending'" class="booking-actions">
-        <AppButton label="Отменить" variant="danger" @click="$emit('cancel', booking.id)" />
+      
+      <div class="booking-card__details">
+        <div class="booking-card__item">
+          <span class="booking-card__icon">📅</span>
+          {{ formatDate(booking.date) }}
+        </div>
+        <div class="booking-card__item">
+          <span class="booking-card__icon">🕒</span>
+          {{ booking.timeStart }} — {{ booking.timeEnd }} ({{ booking.hours }} ч.)
+        </div>
+        <div class="booking-card__item">
+          <span class="booking-card__icon">💰</span>
+          <strong>{{ formatPrice(booking.totalPrice) }} ₽</strong>
+        </div>
       </div>
+    </div>
+
+    <div class="booking-card__actions">
+      <AppButton
+        v-if="booking.status === 'pending'"
+        label="Отменить"
+        variant="danger"
+        @click="$emit('cancel', booking.id)"
+      />
+      <!-- Слот для дополнительных действий админа, если нужно будет -->
+      <slot name="admin-actions"></slot>
     </div>
   </div>
 </template>
@@ -49,86 +71,73 @@ const formatDate = (dateStr) => {
 .booking-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   display: flex;
-  overflow: hidden;
-  margin-bottom: 16px;
-  position: relative;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-left: 6px solid #ccc;
+  transition: transform 0.2s;
 
-  .status-indicator {
-    width: 6px;
-    height: 100%;
-    background-color: #ddd;
+  &:hover {
+    transform: translateX(4px);
   }
 
-  &.pending .status-indicator { background-color: $warning-color; }
-  &.confirmed .status-indicator { background-color: $success-color; }
-  &.cancelled .status-indicator { background-color: $danger-color; }
+  &--pending { border-left-color: $warning-color; }
+  &--confirmed { border-left-color: $success-color; }
+  &--cancelled { border-left-color: $danger-color; }
 
-  .booking-main {
+  &__info {
     flex: 1;
-    padding: 20px;
+  }
+
+  &__header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
+    margin-bottom: 12px;
   }
 
-  .booking-info {
-    flex: 2;
-
-    .cabin-name {
-      font-family: $font-header;
-      font-size: 18px;
-      margin-bottom: 8px;
-      color: $text-color;
-    }
-
-    .booking-details {
-      display: flex;
-      gap: 20px;
-      font-size: 14px;
-      color: #666;
-    }
+  &__cabin {
+    margin: 0;
+    font-size: 1.2rem;
+    color: $primary-color;
   }
 
-  .booking-meta {
-    flex: 1;
+  &__details {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-
-    .booking-price {
-      font-weight: 700;
-      font-size: 18px;
-      color: $primary-color;
-    }
+    gap: 24px;
+    flex-wrap: wrap;
   }
 
-  .booking-actions {
+  &__item {
+    font-size: 0.95rem;
+    color: $text-color;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__icon {
+    font-size: 1.1rem;
+  }
+
+  &__actions {
     margin-left: 20px;
   }
-}
 
-@media (max-width: 768px) {
-  .booking-main {
+  @media (max-width: 768px) {
     flex-direction: column;
-    align-items: flex-start !important;
-    gap: 15px !important;
+    align-items: flex-start;
+    gap: 20px;
 
-    .booking-meta {
-      align-items: flex-start;
-      width: 100%;
-      flex-direction: row;
-      justify-content: space-between;
-    }
-
-    .booking-actions {
+    &__actions {
       margin-left: 0;
       width: 100%;
       
-      button { width: 100%; }
+      .app-button {
+        width: 100%;
+      }
     }
   }
 }

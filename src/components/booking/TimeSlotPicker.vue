@@ -15,121 +15,109 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const startHour = 8
-const endHour = 21
+const allSlots = [
+  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', 
+  '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', 
+  '20:00', '21:00'
+]
 
-const slots = computed(() => {
-  const result = []
-  for (let h = startHour; h <= endHour; h++) {
-    const time = `${h.toString().padStart(2, '0')}:00`
-    result.push({
-      time,
-      isBooked: checkIfBooked(time)
-    })
-  }
-  return result
-})
+// Преобразование "HH:MM" в минуты для сравнения
+const timeToMinutes = (time) => {
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
+}
 
-const checkIfBooked = (time) => {
-  const [h] = time.split(':').map(Number)
-  const slotStart = h
-  const slotEnd = h + props.duration
+const isSlotBooked = (slot) => {
+  const start = timeToMinutes(slot)
+  const end = start + props.duration * 60
+
+  // Проверка выхода за пределы рабочего времени (до 22:00)
+  if (end > timeToMinutes('22:00')) return true
 
   return props.bookedSlots.some(booked => {
-    const [bhStart] = booked.timeStart.split(':').map(Number)
-    const [bhEnd] = booked.timeEnd.split(':').map(Number)
+    const bStart = timeToMinutes(booked.timeStart)
+    const bEnd = timeToMinutes(booked.timeEnd)
     
-    // Пересечение интервалов: [slotStart, slotEnd] и [bhStart, bhEnd]
-    // Интервалы пересекаются, если max(slotStart, bhStart) < min(slotEnd, bhEnd)
-    return Math.max(slotStart, bhStart) < Math.min(slotEnd, bhEnd)
+    // Пересечение интервалов: [start, end] и [bStart, bEnd]
+    // Пересекаются если start < bEnd И end > bStart
+    return start < bEnd && end > bStart
   })
 }
 
-const selectSlot = (time) => {
-  if (!checkIfBooked(time)) {
-    emit('update:modelValue', time)
+const selectSlot = (slot) => {
+  if (!isSlotBooked(slot)) {
+    emit('update:modelValue', slot)
   }
 }
 </script>
 
 <template>
-  <div class="timeslot-picker">
-    <label class="picker-label">Выберите время начала</label>
-    <div class="slots-grid">
-      <button 
-        v-for="slot in slots" 
-        :key="slot.time"
+  <div class="time-slot-picker">
+    <label class="time-slot-picker__label">Выберите время начала</label>
+    <div class="time-slot-picker__grid">
+      <button
+        v-for="slot in allSlots"
+        :key="slot"
         type="button"
-        class="slot-btn"
+        class="time-slot-picker__btn"
         :class="{ 
-          active: modelValue === slot.time,
-          booked: slot.isBooked 
+          'is-active': modelValue === slot,
+          'is-booked': isSlotBooked(slot)
         }"
-        :disabled="slot.isBooked"
-        @click="selectSlot(slot.time)"
+        :disabled="isSlotBooked(slot)"
+        @click="selectSlot(slot)"
       >
-        {{ slot.time }}
+        {{ slot }}
       </button>
     </div>
-    <p v-if="duration > 1" class="duration-hint">
-      Бронирование будет на {{ duration }} ч. (до {{ parseInt(modelValue) + duration }}:00)
-    </p>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.timeslot-picker {
-  margin-bottom: 24px;
+.time-slot-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 
-  .picker-label {
-    display: block;
-    font-size: 14px;
+  &__label {
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 12px;
-    color: $text-color;
+    color: lighten($text-color, 20%);
   }
 
-  .slots-grid {
+  &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 10px;
   }
 
-  .slot-btn {
-    padding: 12px 5px;
-    border: 1px solid #ddd;
+  &__btn {
+    padding: 10px;
+    border: 1px solid $success-color;
     border-radius: 8px;
-    background: white;
-    cursor: pointer;
-    font-family: $font-body;
-    font-weight: 500;
+    background: rgba($success-color, 0.05);
+    color: $success-color;
+    font-weight: 600;
     transition: all 0.3s ease;
-    color: $text-color;
 
     &:hover:not(:disabled) {
-      border-color: $success-color;
-      color: $success-color;
-    }
-
-    &.active {
-      background-color: $success-color;
-      border-color: $success-color;
+      background: $success-color;
       color: white;
     }
 
-    &.booked {
-      background-color: #f0f0f0;
-      color: #bbb;
-      border-color: #eee;
-      cursor: not-allowed;
+    &.is-active {
+      background: $primary-color;
+      border-color: $primary-color;
+      color: white;
     }
-  }
 
-  .duration-hint {
-    margin-top: 10px;
-    font-size: 13px;
-    color: #666;
-    font-style: italic;
+    &.is-booked {
+      background: #f0f0f0;
+      border-color: #ddd;
+      color: #aaa;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
   }
 }
 </style>

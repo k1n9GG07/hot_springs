@@ -14,55 +14,59 @@ defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <div class="app-input-wrapper">
-    <label v-if="label" class="app-input-label">{{ label }}</label>
-    <input 
-      :type="type" 
-      :value="modelValue" 
+  <div class="app-input" :class="{ 'app-input--error': error }">
+    <label v-if="label" class="app-input__label">{{ label }}</label>
+    <input
+      class="app-input__field"
+      :type="type"
+      :value="modelValue"
       :placeholder="placeholder"
-      class="app-input"
-      :class="{ 'has-error': error }"
       @input="$emit('update:modelValue', $event.target.value)"
-    >
-    <span v-if="error" class="error-message">{{ error }}</span>
+    />
+    <span v-if="error" class="app-input__error-text">{{ error }}</span>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.app-input-wrapper {
-  margin-bottom: 16px;
+.app-input {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  width: 100%;
 
-  .app-input-label {
-    font-size: 14px;
+  &__label {
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 6px;
-    color: $text-color;
+    color: lighten($text-color, 20%);
   }
 
-  .app-input {
-    padding: 12px;
-    border: 1px solid #ddd;
+  &__field {
+    padding: 12px 16px;
+    border: 1px solid lighten($text-color, 60%);
     border-radius: 8px;
     font-family: $font-body;
-    font-size: 16px;
     transition: all 0.3s ease;
     outline: none;
 
     &:focus {
-      border-bottom: 2px solid $primary-color;
-    }
-
-    &.has-error {
-      border: 1px solid $danger-color;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
     }
   }
 
-  .error-message {
-    font-size: 12px;
+  &--error {
+    .app-input__field {
+      border-color: $danger-color;
+
+      &:focus {
+        box-shadow: 0 0 0 2px rgba($danger-color, 0.1);
+      }
+    }
+  }
+
+  &__error-text {
+    font-size: 0.8rem;
     color: $danger-color;
-    margin-top: 4px;
   }
 }
 </style>

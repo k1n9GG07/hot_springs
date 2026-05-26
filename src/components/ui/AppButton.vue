@@ -23,77 +23,78 @@ defineEmits(['click'])
 </script>
 
 <template>
-  <button 
-    class="app-button" 
-    :class="[variant, { loading }]" 
+  <button
+    class="app-button"
+    :class="[`app-button--${variant}`, { 'app-button--loading': loading }]"
     :disabled="disabled || loading"
-    @click="$emit('click')"
+    @click="$emit('click', $event)"
   >
-    <span v-if="loading" class="spinner"></span>
-    <span v-else>{{ label }}</span>
+    <span v-if="loading" class="app-button__spinner"></span>
+    <span v-else class="app-button__label">{{ label }}</span>
   </button>
 </template>
 
 <style lang="scss" scoped>
 .app-button {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
   font-family: $font-body;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  min-width: 120px;
+  position: relative;
+
+  &--primary {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($primary-color, 10%);
+      transform: translateY(-2px);
+    }
+  }
+
+  &--outline {
+    background-color: transparent;
+    border-color: $primary-color;
+    color: $primary-color;
+
+    &:hover:not(:disabled) {
+      background-color: rgba($primary-color, 0.1);
+      transform: translateY(-2px);
+    }
+  }
+
+  &--danger {
+    background-color: $danger-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($danger-color, 10%);
+      transform: translateY(-2px);
+    }
+  }
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
 
-  &.primary {
-    background-color: $primary-color;
-    color: white;
-    &:hover:not(:disabled) {
-      background-color: darken($primary-color, 10%);
-    }
-  }
-
-  &.outline {
-    background-color: transparent;
-    border: 2px solid $primary-color;
-    color: $primary-color;
-    &:hover:not(:disabled) {
-      background-color: rgba($primary-color, 0.1);
-    }
-  }
-
-  &.danger {
-    background-color: $danger-color;
-    color: white;
-    &:hover:not(:disabled) {
-      background-color: darken($danger-color, 10%);
-    }
-  }
-
-  .spinner {
+  &__spinner {
     width: 20px;
     height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    border: 3px solid rgba(white, 0.3);
     border-radius: 50%;
     border-top-color: white;
     animation: spin 1s linear infinite;
   }
 
-  &.outline .spinner {
-    border-top-color: $primary-color;
-    border-left-color: rgba($primary-color, 0.3);
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 </style>

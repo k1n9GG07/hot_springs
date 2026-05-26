@@ -10,65 +10,64 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const options = [1, 2, 3, 4]
+const durations = [1, 2, 3, 4]
 
 const totalPrice = computed(() => {
   return props.modelValue === 1 ? 2000 : props.modelValue * 1500
 })
 
-const selectDuration = (hours) => {
-  emit('update:modelValue', hours)
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('ru-RU').format(price)
 }
 </script>
 
 <template>
   <div class="duration-picker">
-    <label class="picker-label">Длительность отдыха</label>
-    <div class="options-grid">
-      <button 
-        v-for="hours in options" 
-        :key="hours"
+    <label class="duration-picker__label">Длительность отдыха</label>
+    <div class="duration-picker__options">
+      <button
+        v-for="h in durations"
+        :key="h"
         type="button"
-        class="duration-btn"
-        :class="{ active: modelValue === hours }"
-        @click="selectDuration(hours)"
+        class="duration-picker__btn"
+        :class="{ 'is-active': modelValue === h }"
+        @click="emit('update:modelValue', h)"
       >
-        {{ hours }} {{ hours === 1 ? 'час' : 'часа' }}
+        {{ h }} {{ h === 1 ? 'час' : 'часа' }}
       </button>
     </div>
     
-    <div class="price-display">
-      Итоговая стоимость: <span>{{ totalPrice.toLocaleString() }} ₽</span>
+    <div class="duration-picker__price">
+      Итоговая стоимость: <span>{{ formatPrice(totalPrice) }} ₽</span>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .duration-picker {
-  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 
-  .picker-label {
-    display: block;
-    font-size: 14px;
+  &__label {
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 12px;
-    color: $text-color;
+    color: lighten($text-color, 20%);
   }
 
-  .options-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 15px;
+  &__options {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  .duration-btn {
+  &__btn {
+    flex: 1;
+    min-width: 80px;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid lighten($text-color, 60%);
     border-radius: 8px;
     background: white;
-    cursor: pointer;
-    font-family: $font-body;
     font-weight: 600;
     transition: all 0.3s ease;
 
@@ -77,21 +76,22 @@ const selectDuration = (hours) => {
       color: $primary-color;
     }
 
-    &.active {
+    &.is-active {
       background-color: $primary-color;
       border-color: $primary-color;
       color: white;
     }
   }
 
-  .price-display {
-    font-size: 16px;
-    color: #666;
-    
+  &__price {
+    margin-top: 8px;
+    font-size: 1rem;
+    color: $text-color;
+
     span {
       font-weight: 700;
       color: $primary-color;
-      font-size: 18px;
+      font-size: 1.2rem;
     }
   }
 }

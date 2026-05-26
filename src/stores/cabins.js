@@ -10,22 +10,22 @@ export const useCabinsStore = defineStore('cabins', () => {
       const { data } = await getCabins()
       cabins.value = data
     } catch (error) {
-      console.error('Error fetching cabins:', error)
+      console.error('Ошибка при загрузке кабинок:', error)
     }
   }
 
   const getBookedSlots = async (cabinId, date) => {
     try {
-      const { data } = await getBookings({ cabinId, date })
-      // Возвращаем массив занятых слотов { timeStart, timeEnd }
-      return data
-        .filter(booking => booking.status !== 'cancelled')
-        .map(booking => ({
-          timeStart: booking.timeStart,
-          timeEnd: booking.timeEnd
+      const { data: bookings } = await getBookings({ cabinId, date })
+      // Фильтруем только активные или подтвержденные брони
+      return bookings
+        .filter(b => b.status !== 'cancelled')
+        .map(b => ({
+          timeStart: b.timeStart,
+          timeEnd: b.timeEnd
         }))
     } catch (error) {
-      console.error('Error fetching booked slots:', error)
+      console.error('Ошибка при загрузке занятых слотов:', error)
       return []
     }
   }

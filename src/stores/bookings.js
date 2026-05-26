@@ -11,7 +11,7 @@ export const useBookingsStore = defineStore('bookings', () => {
       const { data } = await getBookings({ userId })
       userBookings.value = data
     } catch (error) {
-      console.error('Error fetching user bookings:', error)
+      console.error('Ошибка при загрузке бронирований пользователя:', error)
     }
   }
 
@@ -20,26 +20,27 @@ export const useBookingsStore = defineStore('bookings', () => {
       const { data } = await getBookings()
       allBookings.value = data
     } catch (error) {
-      console.error('Error fetching all bookings:', error)
+      console.error('Ошибка при загрузке всех бронирований:', error)
     }
   }
 
   const createBooking = async (bookingData) => {
     try {
+      // Расчет стоимости: первый час 2000, последующие по 1500 (если hours > 1)
+      // В ТЗ: hours === 1 ? 2000 : hours * 1500
       const totalPrice = bookingData.hours === 1 ? 2000 : bookingData.hours * 1500
       
-      const newBooking = {
+      const fullBooking = {
         ...bookingData,
         totalPrice,
         status: 'pending',
         createdAt: Date.now()
       }
 
-      const { data } = await apiCreateBooking(newBooking)
+      const { data } = await apiCreateBooking(fullBooking)
       userBookings.value.push(data)
       return { success: true, data }
     } catch (error) {
-      console.error('Error creating booking:', error)
       return { success: false, message: 'Ошибка при создании бронирования' }
     }
   }
@@ -48,7 +49,7 @@ export const useBookingsStore = defineStore('bookings', () => {
     try {
       await updateBooking(id, { status: 'cancelled' })
       
-      // Обновляем локальные стейты
+      // Обновляем в локальном сторе
       const updateList = (list) => {
         const index = list.findIndex(b => b.id === id)
         if (index !== -1) list[index].status = 'cancelled'
@@ -59,8 +60,7 @@ export const useBookingsStore = defineStore('bookings', () => {
       
       return { success: true }
     } catch (error) {
-      console.error('Error cancelling booking:', error)
-      return { success: false }
+      return { success: false, message: 'Ошибка при отмене бронирования' }
     }
   }
 
@@ -73,13 +73,12 @@ export const useBookingsStore = defineStore('bookings', () => {
         if (index !== -1) list[index].status = 'confirmed'
       }
       
-      updateList(allBookings.value)
       updateList(userBookings.value)
+      updateList(allBookings.value)
       
       return { success: true }
     } catch (error) {
-      console.error('Error confirming booking:', error)
-      return { success: false }
+      return { success: false, message: 'Ошибка при подтверждении бронирования' }
     }
   }
 

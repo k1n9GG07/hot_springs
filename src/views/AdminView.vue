@@ -1,20 +1,40 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { onMounted, ref, computed } from 'vue'
 import { useBookingsStore } from '@/stores/bookings'
 import { useCabinsStore } from '@/stores/cabins'
+import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
-import AppBadge from '@/components/ui/AppBadge.vue'
+import AppToast from '@/components/ui/AppToast.vue'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const bookingsStore = useBookingsStore()
 const cabinsStore = useCabinsStore()
 
 const filterCabin = ref('')
 const filterDate = ref('')
+const toast = ref({ visible: false, message: '', type: 'success' })
+
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type }
+  setTimeout(() => {
+    toast.value.visible = false
+  }, 3000)
+}
+
+onMounted(async () => {
+  await bookingsStore.fetchAllBookings()
+  if (cabinsStore.cabins.length === 0) {
+    await cabinsStore.fetchCabins()
+  }
+})
+
+const filteredBookings = computed(() => {
+  return bookingsStore.allBookings.filter(b => {
+    const matchCabin = !filterCabin.value || b.cabinId === Number(filterCabin.value)
+    const matchDate = !filterDate.value || b.date === filterDate.value
+    return matchCabin && matchDate
+  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+})
 
 const stats = computed(() => {
   const all = bookingsStore.allBookings
@@ -25,74 +45,59 @@ const stats = computed(() => {
   }
 })
 
-const filteredBookings = computed(() => {
-  return bookingsStore.allBookings.filter(b => {
-    const matchesCabin = !filterCabin.value || b.cabinId === Number(filterCabin.value)
-    const matchesDate = !filterDate.value || b.date === filterDate.value
-    return matchesCabin && matchesDate
-  }).sort((a, b) => new Date(b.date + ' ' + b.timeStart) - new Date(a.date + ' ' + a.timeStart))
-})
-
 const handleConfirm = async (id) => {
-  await bookingsStore.confirmBooking(id)
-  await bookingsStore.fetchAllBookings()
+  const result = await bookingsStore.confirmBooking(id)
+  if (result.success) showToast('Бронирование подтверждено')
 }
 
 const handleCancel = async (id) => {
   if (confirm('Отменить это бронирование?')) {
-    await bookingsStore.cancelBooking(id)
-    await bookingsStore.fetchAllBookings()
+    const result = await bookingsStore.cancelBooking(id)
+    if (result.success) showToast('Бронирование отменено')
   }
 }
 
-onMounted(async () => {
-  if (!authStore.isAdmin) {
-    router.push('/')
-    return
-  }
-  await bookingsStore.fetchAllBookings()
-  if (!cabinsStore.cabins.length) await cabinsStore.fetchCabins()
-})
+const formatPrice = (price) => new Intl.NumberFormat('ru-RU').format(price)
 </script>
 
 <template>
-  <div class="admin-view">
-    <div class="admin-header">
-      <h1>Панель администратора</h1>
-      
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Всего броней</span>
-          <span class="stat-value">{{ stats.total }}</span>
-        </div>
-        <div class="stat-card warning">
-          <span class="stat-label">Ожидают</span>
-          <span class="stat-value">{{ stats.pending }}</span>
-        </div>
-        <div class="stat-card success">
-          <span class="stat-label">Подтверждено</span>
-          <span class="stat-value">{{ stats.confirmed }}</span>
-        </div>
+  <div class="admin-view container section">
+    <h1 class="page-title">Панель администратора</h1>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card__value">{{ stats.total }}</div>
+        <div class="stat-card__label">Всего броней</div>
+      </div>
+      <div class="stat-card stat-card--pending">
+        <div class="stat-card__value">{{ stats.pending }}</div>
+        <div class="stat-card__label">Ожидают</div>
+      </div>
+      <div class="stat-card stat-card--confirmed">
+        <div class="stat-card__value">{{ stats.confirmed }}</div>
+        <div class="stat-card__label">Подтверждено</div>
       </div>
     </div>
 
-    <div class="admin-controls">
-      <div class="filters">
-        <div class="filter-item">
-          <label>Кабинка</label>
-          <select v-model="filterCabin" class="admin-select">
-            <option value="">Все кабинки</option>
-            <option v-for="c in cabinsStore.cabins" :key="c.id" :value="c.id">
-              {{ c.name }}
-            </option>
-          </select>
-        </div>
-        <div class="filter-item">
-          <AppInput v-model="filterDate" type="date" label="Дата" />
-        </div>
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filter-item">
+        <label>Кабинка</label>
+        <select v-model="filterCabin" class="admin-select">
+          <option value="">Все кабинки</option>
+          <option v-for="c in cabinsStore.cabins" :key="c.id" :value="c.id">
+            {{ c.name }}
+          </option>
+        </select>
       </div>
+      <div class="filter-item">
+        <AppInput label="Дата" type="date" v-model="filterDate" />
+      </div>
+      <AppButton label="Сбросить" variant="outline" @click="filterCabin = ''; filterDate = ''" />
     </div>
 
+    <!-- Table -->
     <div class="admin-table-wrapper">
       <table class="admin-table">
         <thead>
@@ -117,154 +122,185 @@ onMounted(async () => {
             <td>
               <div class="time-info">
                 <strong>{{ b.date }}</strong>
-                <span>{{ b.timeStart }} – {{ b.timeEnd }}</span>
+                <span>{{ b.timeStart }} — {{ b.timeEnd }}</span>
               </div>
             </td>
-            <td>{{ b.totalPrice.toLocaleString() }} ₽</td>
+            <td>{{ formatPrice(b.totalPrice) }} ₽</td>
             <td><AppBadge :status="b.status" /></td>
             <td>
-              <div class="table-actions">
+              <div class="actions">
                 <button 
-                  v-if="b.status === 'pending'" 
-                  class="action-btn success" 
-                  @click="handleConfirm(b.id)"
+                  v-if="b.status === 'pending'"
+                  class="btn-icon btn-confirm" 
                   title="Подтвердить"
+                  @click="handleConfirm(b.id)"
                 >✓</button>
                 <button 
-                  v-if="b.status !== 'cancelled'" 
-                  class="action-btn danger" 
-                  @click="handleCancel(b.id)"
+                  v-if="b.status !== 'cancelled'"
+                  class="btn-icon btn-cancel" 
                   title="Отменить"
+                  @click="handleCancel(b.id)"
                 >×</button>
               </div>
             </td>
           </tr>
-          <tr v-if="!filteredBookings.length">
-            <td colspan="6" class="empty-table">Бронирований не найдено</td>
+          <tr v-if="filteredBookings.length === 0">
+            <td colspan="6" class="text-center">Бронирований не найдено</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <AppToast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
   </div>
 </template>
 
 <style lang="scss" scoped>
-.admin-view {
-  .admin-header {
-    margin-bottom: 40px;
+.page-title {
+  margin-bottom: 40px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+  &__value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: $primary-color;
+  }
+
+  &__label {
+    color: lighten($text-color, 30%);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  &--pending &__value { color: $warning-color; }
+  &--confirmed &__value { color: $success-color; }
+}
+
+.filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 30px;
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+
+  .filter-item {
+    flex: 1;
     
-    h1 {
-      font-size: 32px;
-      color: $primary-color;
-      margin-bottom: 30px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 20px;
-
-      .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        display: flex;
-        flex-direction: column;
-        
-        .stat-label { font-size: 14px; color: #888; margin-bottom: 5px; }
-        .stat-value { font-size: 24px; font-weight: 700; color: $text-color; }
-
-        &.warning .stat-value { color: $warning-color; }
-        &.success .stat-value { color: $success-color; }
-      }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      color: lighten($text-color, 20%);
     }
   }
+}
 
-  .admin-controls {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+.admin-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  outline: none;
+  
+  &:focus { border-color: $primary-color; }
+}
 
-    .filters {
-      display: flex;
-      gap: 30px;
-      align-items: flex-end;
+.admin-table-wrapper {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
 
-      .filter-item {
-        flex: 1;
-        label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
-      }
-    }
-  }
-
-  .admin-select {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-family: $font-body;
-    outline: none;
-    &:focus { border-color: $primary-color; }
-  }
-
-  .admin-table-wrapper {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    overflow-x: auto;
-  }
-
-  .admin-table {
-    width: 100%;
-    border-collapse: collapse;
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th {
+    background: #f8f9fa;
     text-align: left;
+    padding: 16px;
+    font-weight: 600;
+    color: lighten($text-color, 20%);
+    border-bottom: 2px solid #eee;
+  }
 
-    th {
-      background: #f8f9fa;
-      padding: 15px 20px;
-      font-weight: 600;
-      color: #666;
-      border-bottom: 2px solid #eee;
+  td {
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .client-info, .time-info {
+    display: flex;
+    flex-direction: column;
+    
+    span {
+      font-size: 0.85rem;
+      color: lighten($text-color, 40%);
     }
+  }
 
-    td {
-      padding: 15px 20px;
-      border-bottom: 1px solid #eee;
-      vertical-align: middle;
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: 0.2s;
+    
+    &.btn-confirm {
+      background: rgba($success-color, 0.1);
+      color: $success-color;
+      &:hover { background: $success-color; color: white; }
     }
-
-    .client-info, .time-info {
-      display: flex;
-      flex-direction: column;
-      span { font-size: 13px; color: #888; }
+    
+    &.btn-cancel {
+      background: rgba($danger-color, 0.1);
+      color: $danger-color;
+      &:hover { background: $danger-color; color: white; }
     }
+  }
+}
 
-    .table-actions {
-      display: flex;
-      gap: 10px;
+.text-center { text-align: center; }
 
-      .action-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        transition: 0.2s;
-        color: white;
-
-        &.success { background: $success-color; &:hover { background: darken($success-color, 10%); } }
-        &.danger { background: $danger-color; &:hover { background: darken($danger-color, 10%); } }
-      }
-    }
-
-    .empty-table { text-align: center; padding: 40px; color: #999; }
+@media (max-width: 768px) {
+  .stats-grid, .filters {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .admin-table-wrapper {
+    overflow-x: auto;
   }
 }
 </style>

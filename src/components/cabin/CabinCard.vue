@@ -6,7 +6,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 const props = defineProps({
   cabin: {
     type: Object,
-    required: true
+    required: true,
+    // { id, name, capacity, description, image }
   }
 })
 
@@ -15,26 +16,30 @@ const authStore = useAuthStore()
 
 const handleBooking = () => {
   if (!authStore.isLoggedIn) {
-    router.push('/login')
+    router.push({ name: 'login' })
   } else {
-    router.push(`/booking/${props.cabin.id}`)
+    router.push({ name: 'booking', params: { cabinId: props.cabin.id } })
   }
 }
 </script>
 
 <template>
   <div class="cabin-card">
-    <div class="cabin-image">
+    <div class="cabin-card__image">
       <img :src="cabin.image" :alt="cabin.name">
-      <div class="capacity-badge">До {{ cabin.capacity }} чел.</div>
+      <div class="cabin-card__capacity">
+        👥 До {{ cabin.capacity }} чел.
+      </div>
     </div>
     
-    <div class="cabin-content">
-      <h3 class="cabin-title">{{ cabin.name }}</h3>
-      <p class="cabin-description">{{ cabin.description }}</p>
+    <div class="cabin-card__content">
+      <h3 class="cabin-card__title">{{ cabin.name }}</h3>
+      <p class="cabin-card__description">{{ cabin.description }}</p>
       
-      <div class="cabin-footer">
-        <div class="price-info">от 1 500 ₽ / час</div>
+      <div class="cabin-card__footer">
+        <div class="cabin-card__price-info">
+          от <span>1 500 ₽</span> / час
+        </div>
         <AppButton label="Забронировать" @click="handleBooking" />
       </div>
     </div>
@@ -46,7 +51,7 @@ const handleBooking = () => {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -54,65 +59,75 @@ const handleBooking = () => {
 
   &:hover {
     transform: translateY(-8px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   }
 
-  .cabin-image {
+  &__image {
     position: relative;
     height: 200px;
-    
+    overflow: hidden;
+
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      transition: transform 0.5s ease;
     }
 
-    .capacity-badge {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: rgba(white, 0.9);
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      color: $primary-color;
+    &:hover img {
+      transform: scale(1.05);
     }
   }
 
-  .cabin-content {
+  &__capacity {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(white, 0.9);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $primary-color;
+  }
+
+  &__content {
     padding: 20px;
-    flex: 1;
     display: flex;
     flex-direction: column;
+    flex: 1;
+  }
 
-    .cabin-title {
-      font-family: $font-header;
-      font-size: 20px;
-      margin-bottom: 10px;
-      color: $text-color;
-    }
+  &__title {
+    margin-bottom: 12px;
+    color: $text-color;
+    font-size: 1.4rem;
+  }
 
-    .cabin-description {
-      font-size: 14px;
-      color: #666;
-      line-height: 1.5;
-      margin-bottom: 20px;
-      flex: 1;
-    }
+  &__description {
+    color: lighten($text-color, 25%);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+    flex: 1;
+  }
 
-    .cabin-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 15px;
-      border-top: 1px solid #eee;
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+  }
 
-      .price-info {
-        font-weight: 700;
-        color: $primary-color;
-        font-size: 16px;
-      }
+  &__price-info {
+    font-size: 0.9rem;
+    color: lighten($text-color, 20%);
+
+    span {
+      font-weight: 700;
+      color: $primary-color;
+      font-size: 1.1rem;
     }
   }
 }

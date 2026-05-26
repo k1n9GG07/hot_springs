@@ -10,46 +10,33 @@ const authStore = useAuthStore()
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
-    router.push('/login')
+    router.push({ 
+      name: 'login', 
+      query: { redirect: route.fullPath } 
+    })
   }
 })
 </script>
 
 <template>
-  <div class="booking-view">
-    <div class="page-header">
-      <h1>Бронирование кабинки</h1>
-      <p>Заполните форму ниже, чтобы забронировать ваш отдых</p>
-    </div>
-
-    <div class="form-wrapper">
+  <div class="booking-view container section">
+    <h1 class="page-title">Бронирование кабинки</h1>
+    <div class="booking-container">
       <BookingForm :cabin-id="route.params.cabinId" />
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.booking-view {
-  max-width: 800px;
-  margin: 0 auto;
+.page-title {
+  text-align: center;
+  font-size: 2.5rem;
+  color: $primary-color;
+  margin-bottom: 40px;
+}
 
-  .page-header {
-    text-align: center;
-    margin-bottom: 40px;
-
-    h1 {
-      font-size: 36px;
-      color: $primary-color;
-      margin-bottom: 10px;
-    }
-
-    p {
-      color: #666;
-    }
-  }
-
-  .form-wrapper {
-    margin-bottom: 60px;
-  }
+.booking-container {
+  display: flex;
+  justify-content: center;
 }
 </style>

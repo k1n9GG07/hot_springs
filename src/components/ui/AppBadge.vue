@@ -5,45 +5,46 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: (value) => ['pending', 'confirmed', 'cancelled'].includes(value)
+    validator: (val) => ['pending', 'confirmed', 'cancelled'].includes(val)
   }
 })
 
 const statusMap = {
-  pending: { text: 'Ожидает', class: 'warning' },
-  confirmed: { text: 'Подтверждено', class: 'success' },
-  cancelled: { text: 'Отменено', class: 'danger' }
+  pending: { label: 'Ожидает', class: 'pending' },
+  confirmed: { label: 'Подтверждено', class: 'confirmed' },
+  cancelled: { label: 'Отменено', class: 'cancelled' }
 }
 
-const statusInfo = computed(() => statusMap[props.status])
+const currentStatus = computed(() => statusMap[props.status])
 </script>
 
 <template>
-  <span class="app-badge" :class="statusInfo.class">
-    {{ statusInfo.text }}
+  <span class="app-badge" :class="`app-badge--${currentStatus.class}`">
+    {{ currentStatus.label }}
   </span>
 </template>
 
 <style lang="scss" scoped>
 .app-badge {
+  display: inline-block;
   padding: 4px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 0.8rem;
   font-weight: 600;
-  display: inline-block;
+  text-transform: uppercase;
 
-  &.warning {
-    background-color: lighten($warning-color, 35%);
+  &--pending {
+    background-color: rgba($warning-color, 0.2);
     color: darken($warning-color, 20%);
   }
 
-  &.success {
-    background-color: lighten($success-color, 35%);
+  &--confirmed {
+    background-color: rgba($success-color, 0.2);
     color: darken($success-color, 10%);
   }
 
-  &.danger {
-    background-color: lighten($danger-color, 35%);
+  &--cancelled {
+    background-color: rgba($danger-color, 0.2);
     color: darken($danger-color, 10%);
   }
 }

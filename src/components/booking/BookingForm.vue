@@ -1,232 +1,201 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { useCabinsStore } from '@/stores/cabins'
 import { useBookingsStore } from '@/stores/bookings'
+import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppToast from '@/components/ui/AppToast.vue'
 import DurationPicker from './DurationPicker.vue'
 import TimeSlotPicker from './TimeSlotPicker.vue'
 
 const props = defineProps({
   cabinId: {
-    type: [String, Number],
+    type: [Number, String],
     required: true
   }
 })
 
 const router = useRouter()
-const authStore = useAuthStore()
 const cabinsStore = useCabinsStore()
 const bookingsStore = useBookingsStore()
+const authStore = useAuthStore()
 
+// State
 const cabin = ref(null)
+const selectedDate = ref(new Date().toISOString().split('T')[0])
+const selectedTime = ref('')
+const duration = ref(1)
 const bookedSlots = ref([])
 const loading = ref(false)
-const submitLoading = ref(false)
+const toast = ref({ visible: false, message: '', type: 'success' })
 
-const date = ref(new Date().toISOString().split('T')[0])
-const timeStart = ref('')
-const hours = ref(1)
-
+// Min date is today
 const minDate = new Date().toISOString().split('T')[0]
 
-const timeEnd = computed(() => {
-  if (!timeStart.value) return ''
-  const [h, m] = timeStart.value.split(':').map(Number)
-  return `${(h + hours.value).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+const cabinInfo = computed(() => {
+  return cabinsStore.cabins.find(c => c.id === Number(props.cabinId))
 })
 
-const totalPrice = computed(() => {
-  return hours.value === 1 ? 2000 : hours.value * 1500
-})
-
-const isFormValid = computed(() => {
-  return date.value && timeStart.value && hours.value
-})
-
-const fetchCabinData = async () => {
-  if (!cabinsStore.cabins.length) {
-    await cabinsStore.fetchCabins()
+const fetchBookedSlots = async () => {
+  if (props.cabinId && selectedDate.value) {
+    bookedSlots.value = await cabinsStore.getBookedSlots(props.cabinId, selectedDate.value)
+    // Сбросить выбранное время если оно теперь недоступно
+    selectedTime.value = ''
   }
-  cabin.value = cabinsStore.cabins.find(c => c.id === Number(props.cabinId))
 }
 
-const fetchSlots = async () => {
-  loading.value = true
-  bookedSlots.value = await cabinsStore.getBookedSlots(Number(props.cabinId), date.value)
-  timeStart.value = '' // Сброс времени при смене даты
-  loading.value = false
+onMounted(async () => {
+  if (cabinsStore.cabins.length === 0) {
+    await cabinsStore.fetchCabins()
+  }
+  cabin.value = cabinInfo.value
+  await fetchBookedSlots()
+})
+
+watch([selectedDate, () => props.cabinId], fetchBookedSlots)
+
+const calculateTimeEnd = (start, hours) => {
+  const [h, m] = start.split(':').map(Number)
+  const endH = h + hours
+  return `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type }
+  setTimeout(() => {
+    toast.value.visible = false
+  }, 3000)
 }
 
 const handleSubmit = async () => {
-  if (!isFormValid.value) return
+  if (!selectedTime.value) {
+    showToast('Пожалуйста, выберите время начала', 'error')
+    return
+  }
 
-  submitLoading.value = true
-  
+  loading.value = true
   const bookingData = {
     userId: authStore.currentUser.id,
     userName: authStore.currentUser.name,
     userPhone: authStore.currentUser.phone,
-    cabinId: cabin.value.id,
+    cabinId: Number(props.cabinId),
     cabinName: cabin.value.name,
-    date: date.value,
-    timeStart: timeStart.value,
-    timeEnd: timeEnd.value,
-    hours: hours.value,
-    totalPrice: totalPrice.value
+    date: selectedDate.value,
+    timeStart: selectedTime.value,
+    timeEnd: calculateTimeEnd(selectedTime.value, duration.value),
+    hours: duration.value
   }
 
   const result = await bookingsStore.createBooking(bookingData)
   
   if (result.success) {
-    // В реальном приложении здесь был бы вызов toast
-    alert('Бронирование успешно оформлено!')
-    router.push('/profile')
+    showToast('Бронь успешно оформлена!')
+    setTimeout(() => {
+      router.push('/profile')
+    }, 1500)
   } else {
-    alert(result.message)
+    showToast(result.message || 'Ошибка при бронировании', 'error')
+    loading.value = false
   }
-  
-  submitLoading.value = false
 }
-
-onMounted(async () => {
-  await fetchCabinData()
-  await fetchSlots()
-})
-
-watch([date, () => props.cabinId], fetchSlots)
 </script>
 
 <template>
-  <div v-if="cabin" class="booking-form-container">
-    <div class="booking-header">
+  <div class="booking-form" v-if="cabin">
+    <div class="booking-form__header">
       <h2>Бронирование: {{ cabin.name }}</h2>
-      <p>{{ cabin.description }}</p>
+      <p>Вместимость: до {{ cabin.capacity }} человек</p>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="booking-form">
-      <div class="form-section">
-        <AppInput 
-          v-model="date" 
-          type="date" 
-          label="Выберите дату" 
+    <form @submit.prevent="handleSubmit" class="booking-form__body">
+      <div class="booking-form__section">
+        <AppInput
+          label="Дата отдыха"
+          type="date"
+          v-model="selectedDate"
           :min="minDate"
-          required
         />
       </div>
 
-      <div class="form-section">
-        <DurationPicker v-model="hours" />
+      <div class="booking-form__section">
+        <DurationPicker v-model="duration" />
       </div>
 
-      <div class="form-section">
-        <TimeSlotPicker 
-          v-model="timeStart" 
-          :booked-slots="bookedSlots" 
-          :duration="hours"
-          :loading="loading"
+      <div class="booking-form__section">
+        <TimeSlotPicker
+          v-model="selectedTime"
+          :booked-slots="bookedSlots"
+          :duration="duration"
         />
       </div>
 
-      <div class="form-footer">
-        <div class="summary">
-          <div class="summary-item">
-            <span>Итого к оплате:</span>
-            <strong>{{ totalPrice.toLocaleString() }} ₽</strong>
-          </div>
-          <p v-if="timeStart" class="summary-hint">
-            Ваше время: {{ timeStart }} – {{ timeEnd }}
-          </p>
-        </div>
-
-        <AppButton 
-          label="Подтвердить бронирование" 
+      <div class="booking-form__footer">
+        <AppButton
+          label="Подтвердить бронирование"
           type="submit"
-          :disabled="!isFormValid || submitLoading"
-          :loading="submitLoading"
+          :loading="loading"
+          :disabled="!selectedTime"
         />
       </div>
     </form>
+
+    <AppToast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
   </div>
-  <div v-else class="loading-state">
+  <div v-else class="booking-form-loader">
     Загрузка данных кабинки...
   </div>
 </template>
 
 <style lang="scss" scoped>
-.booking-form-container {
+.booking-form {
   background: white;
-  padding: 30px;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  max-width: 600px;
+  margin: 0 auto;
 
-  .booking-header {
-    margin-bottom: 30px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 20px;
+  &__header {
+    margin-bottom: 32px;
+    text-align: center;
 
     h2 {
-      font-family: $font-header;
       color: $primary-color;
-      margin-bottom: 10px;
+      font-size: 1.8rem;
+      margin-bottom: 8px;
     }
 
     p {
-      color: #666;
-      font-size: 14px;
+      color: lighten($text-color, 30%);
     }
   }
 
-  .form-section {
-    margin-bottom: 30px;
-  }
-
-  .form-footer {
+  &__body {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid #eee;
-    padding-top: 30px;
-    margin-top: 30px;
-
-    .summary {
-      .summary-item {
-        font-size: 18px;
-        margin-bottom: 5px;
-        
-        strong {
-          color: $primary-color;
-          font-size: 24px;
-          margin-left: 10px;
-        }
-      }
-
-      .summary-hint {
-        font-size: 14px;
-        color: #888;
-      }
-    }
-  }
-}
-
-.loading-state {
-  text-align: center;
-  padding: 50px;
-  color: #888;
-}
-
-@media (max-width: 768px) {
-  .form-footer {
     flex-direction: column;
-    gap: 20px;
-    text-align: center;
+    gap: 32px;
+  }
 
-    .summary-item {
-      flex-direction: column;
-      gap: 5px;
+  &__footer {
+    margin-top: 16px;
+    
+    .app-button {
+      width: 100%;
+      height: 50px;
     }
   }
+}
+
+.booking-form-loader {
+  text-align: center;
+  padding: 40px;
+  color: $primary-color;
+  font-weight: 600;
 }
 </style>

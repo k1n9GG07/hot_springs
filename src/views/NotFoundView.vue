@@ -6,11 +6,10 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="not-found">
-    <div class="content">
-      <h1 class="error-code">404</h1>
-      <h2>Страница не найдена</h2>
-      <p>К сожалению, запрашиваемая страница не существует или была перемещена.</p>
+  <div class="not-found container section">
+    <div class="not-found__content">
+      <h1 class="not-found__title">404</h1>
+      <p class="not-found__text">Упс! Страница, которую вы ищете, не существует или была перемещена.</p>
       <AppButton label="На главную" @click="router.push('/')" />
     </div>
   </div>
@@ -18,32 +17,25 @@ const router = useRouter()
 
 <style lang="scss" scoped>
 .not-found {
-  min-height: calc(100vh - 300px);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  min-height: 60vh;
   text-align: center;
-  padding: 40px 20px;
 
-  .error-code {
-    font-size: 120px;
-    font-weight: 900;
+  &__title {
+    font-size: 8rem;
     color: $primary-color;
-    margin-bottom: 0;
+    font-family: $font-header;
     line-height: 1;
+    margin-bottom: 16px;
   }
 
-  h2 {
-    font-size: 32px;
-    margin-bottom: 15px;
-    color: $text-color;
-  }
-
-  p {
-    font-size: 18px;
-    color: #666;
-    margin-bottom: 30px;
-    max-width: 500px;
+  &__text {
+    font-size: 1.2rem;
+    color: lighten($text-color, 30%);
+    margin-bottom: 32px;
+    max-width: 400px;
   }
 }
 </style>

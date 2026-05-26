@@ -6,17 +6,17 @@ import CabinCard from '@/components/cabin/CabinCard.vue'
 const cabinsStore = useCabinsStore()
 
 onMounted(async () => {
-  await cabinsStore.fetchCabins()
+  if (cabinsStore.cabins.length === 0) {
+    await cabinsStore.fetchCabins()
+  }
 })
 </script>
 
 <template>
-  <div class="cabins-view">
-    <div class="page-header">
-      <h1>Наши уютные кабинки</h1>
-      <p>Выберите подходящую кабинку для вашего отдыха</p>
-    </div>
-
+  <div class="cabins-view container section">
+    <h1 class="page-title">Наши кабинки</h1>
+    <p class="page-subtitle">Выберите идеальную кабинку для вашего отдыха</p>
+    
     <div class="cabins-grid">
       <CabinCard 
         v-for="cabin in cabinsStore.cabins" 
@@ -28,27 +28,28 @@ onMounted(async () => {
 </template>
 
 <style lang="scss" scoped>
-.cabins-view {
-  .page-header {
-    text-align: center;
-    margin-bottom: 50px;
-    
-    h1 {
-      font-size: 42px;
-      color: $primary-color;
-      margin-bottom: 15px;
-    }
-    
-    p {
-      font-size: 18px;
-      color: #666;
-    }
-  }
+.page-title {
+  text-align: center;
+  font-size: 2.5rem;
+  color: $primary-color;
+  margin-bottom: 8px;
+}
 
+.page-subtitle {
+  text-align: center;
+  color: lighten($text-color, 30%);
+  margin-bottom: 50px;
+}
+
+.cabins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 30px;
+}
+
+@media (max-width: 768px) {
   .cabins-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 30px;
+    grid-template-columns: 1fr;
   }
 }
 </style>

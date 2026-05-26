@@ -53,23 +53,8 @@
       "hours": 1,
       "totalPrice": 2000,
       "status": "cancelled",
-      "createdAt": 1779793719942,
+      "createdAt": 1779807016295,
       "id": 1
-    },
-    {
-      "userId": 2,
-      "userName": "kantemir",
-      "userPhone": "tokmaev",
-      "cabinId": 1,
-      "cabinName": "Кабинка №1",
-      "date": "2026-05-26",
-      "timeStart": "08:00",
-      "timeEnd": "09:00",
-      "hours": 1,
-      "totalPrice": 2000,
-      "status": "confirmed",
-      "createdAt": 1779793999529,
-      "id": 2
     }
   ]
 }

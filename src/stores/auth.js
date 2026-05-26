@@ -24,21 +24,17 @@ export const useAuthStore = defineStore('auth', () => {
         currentUser.value = user
         localStorage.setItem('currentUser', JSON.stringify(user))
         return { success: true }
-      } else {
-        return { success: false, message: 'Неверный email или пароль' }
       }
+      return { success: false, message: 'Неверный email или пароль' }
     } catch (error) {
-      console.error('Login error:', error)
-      return { success: false, message: 'Ошибка при входе' }
+      return { success: false, message: 'Ошибка при авторизации' }
     }
   }
 
   const register = async (name, phone, email, password) => {
     try {
       const { data: users } = await getUsers()
-      const existingUser = users.find(u => u.email === email)
-      
-      if (existingUser) {
+      if (users.find(u => u.email === email)) {
         return { success: false, message: 'Пользователь с таким email уже существует' }
       }
 
@@ -50,12 +46,11 @@ export const useAuthStore = defineStore('auth', () => {
         role: 'user'
       }
 
-      const { data: createdUser } = await createUser(newUser)
-      currentUser.value = createdUser
-      localStorage.setItem('currentUser', JSON.stringify(createdUser))
+      const { data: user } = await createUser(newUser)
+      currentUser.value = user
+      localStorage.setItem('currentUser', JSON.stringify(user))
       return { success: true }
     } catch (error) {
-      console.error('Registration error:', error)
       return { success: false, message: 'Ошибка при регистрации' }
     }
   }
