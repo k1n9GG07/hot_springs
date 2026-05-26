@@ -1,0 +1,75 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Администратор",
+      "phone": "+7 900 000 00 00",
+      "email": "admin@springs.ru",
+      "password": "admin123",
+      "role": "admin"
+    },
+    {
+      "name": "kantemir",
+      "phone": "tokmaev",
+      "email": "kantiktokmaev330@gmail.com",
+      "password": "Rfrf4554",
+      "role": "user",
+      "id": 2
+    }
+  ],
+  "cabins": [
+    {
+      "id": 1,
+      "name": "Кабинка №1",
+      "capacity": 4,
+      "description": "Уютная кабинка с видом на горы, вмещает до 4 человек",
+      "image": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600"
+    },
+    {
+      "id": 2,
+      "name": "Кабинка №2",
+      "capacity": 4,
+      "description": "Просторная кабинка с панорамным окном, вмещает до 4 человек",
+      "image": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600"
+    },
+    {
+      "id": 3,
+      "name": "Кабинка №3",
+      "capacity": 4,
+      "description": "Романтическая кабинка с деревянным декором, вмещает до 4 человек",
+      "image": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600"
+    }
+  ],
+  "bookings": [
+    {
+      "userId": 2,
+      "userName": "kantemir",
+      "userPhone": "tokmaev",
+      "cabinId": 1,
+      "cabinName": "Кабинка №1",
+      "date": "2026-05-26",
+      "timeStart": "08:00",
+      "timeEnd": "09:00",
+      "hours": 1,
+      "totalPrice": 2000,
+      "status": "cancelled",
+      "createdAt": 1779793719942,
+      "id": 1
+    },
+    {
+      "userId": 2,
+      "userName": "kantemir",
+      "userPhone": "tokmaev",
+      "cabinId": 1,
+      "cabinName": "Кабинка №1",
+      "date": "2026-05-26",
+      "timeStart": "08:00",
+      "timeEnd": "09:00",
+      "hours": 1,
+      "totalPrice": 2000,
+      "status": "confirmed",
+      "createdAt": 1779793999529,
+      "id": 2
+    }
+  ]
+}
