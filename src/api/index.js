@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3001',
+  baseURL: 'https://hotsprings-production.up.railway.app',
   timeout: 10000
 })
 
