@@ -9,6 +9,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppToast from '@/components/ui/AppToast.vue'
 import DurationPicker from './DurationPicker.vue'
 import TimeSlotPicker from './TimeSlotPicker.vue'
+import PaymentModal from './PaymentModal.vue'
 
 const props = defineProps({
   cabinId: {
@@ -29,6 +30,8 @@ const selectedTime = ref('')
 const duration = ref(1)
 const bookedSlots = ref([])
 const loading = ref(false)
+const isPaymentModalOpen = ref(false)
+const currentBookingData = ref(null)
 const toast = ref({ visible: false, message: '', type: 'success' })
 
 // Min date is today
@@ -36,6 +39,10 @@ const minDate = new Date().toISOString().split('T')[0]
 
 const cabinInfo = computed(() => {
   return cabinsStore.cabins.find(c => c.id === Number(props.cabinId))
+})
+
+const totalPrice = computed(() => {
+  return duration.value === 1 ? 2000 : duration.value * 1500
 })
 
 const fetchBookedSlots = async () => {
@@ -75,8 +82,7 @@ const handleSubmit = async () => {
     return
   }
 
-  loading.value = true
-  const bookingData = {
+  currentBookingData.value = {
     userId: authStore.currentUser.id,
     userName: authStore.currentUser.name,
     userPhone: authStore.currentUser.phone,
@@ -88,17 +94,15 @@ const handleSubmit = async () => {
     hours: duration.value
   }
 
-  const result = await bookingsStore.createBooking(bookingData)
-  
-  if (result.success) {
-    showToast('Бронь успешно оформлена!')
-    setTimeout(() => {
-      router.push('/profile')
-    }, 1500)
-  } else {
-    showToast(result.message || 'Ошибка при бронировании', 'error')
-    loading.value = false
-  }
+  isPaymentModalOpen.value = true
+}
+
+const handlePaymentSuccess = () => {
+  isPaymentModalOpen.value = false
+  showToast('Бронь успешно оформлена!')
+  setTimeout(() => {
+    router.push('/profile')
+  }, 1500)
 }
 </script>
 
@@ -145,6 +149,15 @@ const handleSubmit = async () => {
       :visible="toast.visible"
       :message="toast.message"
       :type="toast.type"
+    />
+
+    <PaymentModal
+      v-if="isPaymentModalOpen"
+      :is-open="isPaymentModalOpen"
+      :amount="totalPrice"
+      :booking-data="currentBookingData"
+      @close="isPaymentModalOpen = false"
+      @success="handlePaymentSuccess"
     />
   </div>
   <div v-else class="booking-form-loader">

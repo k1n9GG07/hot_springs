@@ -1,10 +1,36 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getBookings, createBooking as apiCreateBooking, updateBooking } from '@/api'
+import { 
+  getBookings, 
+  createBooking as apiCreateBooking, 
+  updateBooking,
+  createPayment as apiCreatePayment,
+  checkPaymentStatus as apiCheckPaymentStatus
+} from '@/api'
 
 export const useBookingsStore = defineStore('bookings', () => {
   const userBookings = ref([])
   const allBookings = ref([])
+
+  // ... (existing methods remain same, but I'll add payment methods)
+  
+  const initiatePayment = async (amount, orderId) => {
+    try {
+      const result = await apiCreatePayment(amount, orderId)
+      return result
+    } catch (error) {
+      return { success: false, message: 'Ошибка при инициализации оплаты' }
+    }
+  }
+
+  const verifyPayment = async (paymentId) => {
+    try {
+      const { data } = await apiCheckPaymentStatus(paymentId)
+      return { success: true, status: data.status }
+    } catch (error) {
+      return { success: false, message: 'Ошибка при проверке статуса оплаты' }
+    }
+  }
 
   const fetchUserBookings = async (userId) => {
     try {
@@ -89,6 +115,8 @@ export const useBookingsStore = defineStore('bookings', () => {
     fetchAllBookings,
     createBooking,
     cancelBooking,
-    confirmBooking
+    confirmBooking,
+    initiatePayment,
+    verifyPayment
   }
 })
